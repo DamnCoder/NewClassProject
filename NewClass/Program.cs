@@ -20,9 +20,27 @@ namespace CMakeConfigure
 		static string NAMESPACE_KEY 	= "#NAMESPACE";
 		static string HEADERFILE_KEY	= "#HEADERFILENAME";
 
-		public static string FindFolder(string rootPath, string searchPath)
+        static string templatesPath = "";
+        static string rootPath = "";
+        static string filename = "";
+        static string projectname = "";
+        static string authorname = "";
+        static string classname = "";
+        static string namespacename = "";
+        static string folder = "";
+        static string srcFolder = "";
+        static string headerFolder = "";
+        static string headerOnly = "";
+
+        public static string FindFolder(string rootPath, string searchPath)
 		{
 			var searchDirInfo = new DirectoryInfo(rootPath);
+
+            if(!searchDirInfo.Exists)
+            {
+                Console.WriteLine("The folder " + rootPath + " doesn't exist!");
+                return "";
+            }
 
 			foreach (var directoryInfo in searchDirInfo.EnumerateDirectories())
 			{
@@ -42,13 +60,7 @@ namespace CMakeConfigure
 
 		public static List<string> ParseFile(string templatesPath, string templateFileName, string[] args)
 		{
-			string filename = args[2];
-			string projectname = args[3];
-			string authorname = args[4];
-			string classname = args[5];
-			string namespacename = args[6];
-
-			string[] templateHeaderLines = File.ReadAllLines(Path.Combine(templatesPath, templateFileName));
+            string[] templateHeaderLines = File.ReadAllLines(Path.Combine(templatesPath, templateFileName));
 			List<string> newFileLines = new List<string>();
 			string newLine = "";
 			foreach(var line in templateHeaderLines)
@@ -98,12 +110,10 @@ namespace CMakeConfigure
 					}
 
 					newFileLines.Add(newLine);
-					//Console.WriteLine(newLine);
 				}
 				else
 				{
 					newFileLines.Add(line);
-					//Console.WriteLine(line);
 				}
 			}
 			return newFileLines;
@@ -133,45 +143,50 @@ namespace CMakeConfigure
 
 		public static void Main(string[] args)
 		{
-			if (args.Length < 8)
+			if (args.Length < 10)
 			{
-				Console.WriteLine("CORRECT USE: mono NewClass.exe " +
+				Console.WriteLine("CORRECT USE: NewClass.exe " +
 					"<templates_path> <root_output_path> " +
 					"<filename_no_extension> <project_name> <author_name>" +
 				    "<class_name> <namespace> <project_local_path_folder>" +
+                    "<src_folder> <header_folder>" +
 				    "<optional_header_only>");
 				return;
 			}
 
-			string templatesPath = args[0];
-			string rootPath = args[1];
-			string filename = args[2];
-			string folder = args[7];
+			templatesPath = args[0];
+			rootPath = args[1];
+            filename = args[2];
+            projectname = args[3];
+            authorname = args[4];
+            classname = args[5];
+            namespacename = args[6];
+            folder = args[7];
+            srcFolder = args[8];
+            headerFolder = args[9];
+            
+            Console.WriteLine("Num args = "+args.Length);
 
-			Console.WriteLine("Num args = "+args.Length);
-
-			if(args.Length == 9)
+			if(args.Length == 11)
 			{
-				List<string> parsedHeaderLines = ParseFile(templatesPath, HEADER_ONLY_TEMPLATE, args);
-				string headersRootPath = Path.Combine(rootPath, "include");
-				string filenameWithExtension = filename + ".h";
-				CreateFile(headersRootPath, folder, filenameWithExtension, parsedHeaderLines);
+                headerOnly = args[10];
+                if (headerOnly == "header")
+                {
+                    List<string> parsedHeaderLines = ParseFile(templatesPath, HEADER_ONLY_TEMPLATE, args);
+                    string headersRootPath = Path.Combine(rootPath, headerFolder);
+                    string filenameWithExtension = filename + ".h";
+                    CreateFile(headersRootPath, folder, filenameWithExtension, parsedHeaderLines);
+                }
 			}
 			else
 			{
 				List<string> parsedHeaderLines = ParseFile(templatesPath, HEADER_TEMPLATE, args);
-				/*
-				foreach (var line in parsedHeaderLines)
-				{
-					Console.WriteLine(line);
-				}
-				*/
-				string headersRootPath = Path.Combine(rootPath, "include");
+				string headersRootPath = Path.Combine(rootPath, headerFolder);
 				string filenameWithExtension = filename + ".h";
 				CreateFile(headersRootPath, folder, filenameWithExtension, parsedHeaderLines);
 
 				List<string> parsedSourceLines = ParseFile(templatesPath, SRC_TEMPLATE, args);
-				string srcRootPath = Path.Combine(rootPath, "src");
+				string srcRootPath = Path.Combine(rootPath, srcFolder);
 				filenameWithExtension = filename + ".cpp";
 				CreateFile(srcRootPath, folder, filenameWithExtension, parsedSourceLines);
 			}
